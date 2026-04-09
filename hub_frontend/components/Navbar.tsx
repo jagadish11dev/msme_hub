@@ -1,15 +1,38 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { User, Menu, X, ChevronRight } from 'lucide-react';
-
+import { User, Menu, X, ChevronRight, LogIn, UserPlus, Building2, LayoutDashboard } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [hasVendorProfile, setHasVendorProfile] = useState(false);
+  const [loading, setLoading] = useState(true);
   const pathname = usePathname();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        setIsLoggedIn(true);
+        try {
+          const res = await fetch('http://localhost:5000/api/vendor-profile/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            setHasVendorProfile(true);
+          }
+        } catch (err) {
+          console.error("Auth check failed", err);
+        }
+      }
+      setLoading(false);
+    };
+    checkAuth();
+  }, [pathname]);
 
   if (pathname.startsWith('/admin')) {
     return null;
@@ -36,16 +59,37 @@ export default function Navbar() {
             </Link>
           </div>
           
-          {/* Desktop Navigation (Removed as requested) */}
-          
-          {/* Desktop Auth Buttons */}
+          {/* Desktop Auth/Vendor Buttons */}
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/login" className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-blue-600 transition-colors px-2 py-1">
-              <User className="h-4 w-4" /> Sign In
-            </Link>
-            <Link href="/dashboard" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-full text-sm font-bold transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
-              Find Suppliers
-            </Link>
+            {!isLoggedIn ? (
+              <>
+                <Link href="/signin" className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-blue-600 transition-colors px-2 py-1">
+                  <LogIn className="h-4 w-4" /> Sign In
+                </Link>
+                <Link href="/signup" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-full text-sm font-bold transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
+                  <UserPlus className="h-4 w-4" /> Sign Up
+                </Link>
+              </>
+            ) : (
+              <div className="flex items-center gap-4">
+                {hasVendorProfile ? (
+                  <Link href="/vendor/dashboard" className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-full text-sm font-bold transition-all shadow-md">
+                    <LayoutDashboard className="h-4 w-4" /> Manage Company
+                  </Link>
+                ) : (
+                  <Link href="/vendor/setup" className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-full text-sm font-bold transition-all shadow-md">
+                    <Building2 className="h-4 w-4" /> List Your Company
+                  </Link>
+                )}
+                
+                <button 
+                  onClick={() => { localStorage.removeItem('token'); window.location.href = "/"; }}
+                  className="p-2.5 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <User size={18} />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -67,24 +111,52 @@ export default function Navbar() {
         }`}
       >
         <div className="px-4 pt-2 pb-6 space-y-2 flex flex-col">
-
-          
           <div className="h-px bg-gray-100 dark:bg-gray-800 my-4" />
           
-          <Link 
-            href="/login" 
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="flex items-center justify-center gap-2 w-full text-gray-700 dark:text-gray-300 font-semibold px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
-          >
-            <User className="h-5 w-5" /> Sign In
-          </Link>
-          <Link 
-            href="/register" 
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="w-full text-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl shadow-md font-bold transition-colors"
-          >
-            Get Started
-          </Link>
+          {!isLoggedIn ? (
+            <>
+              <Link 
+                href="/signin" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-center gap-2 w-full text-gray-700 dark:text-gray-300 font-semibold px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                <LogIn className="h-5 w-5" /> Sign In
+              </Link>
+              <Link 
+                href="/signup" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center justify-center gap-2 w-full text-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-xl shadow-md font-bold transition-colors"
+              >
+                <UserPlus className="h-5 w-5" /> Sign Up
+              </Link>
+            </>
+          ) : (
+            <>
+              {hasVendorProfile ? (
+                 <Link 
+                  href="/vendor/dashboard" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 w-full text-center bg-indigo-600 text-white px-4 py-3 rounded-xl font-bold"
+                >
+                  <LayoutDashboard className="h-5 w-5" /> Manage Company
+                </Link>
+              ) : (
+                <Link 
+                  href="/vendor/setup" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 w-full text-center bg-indigo-600 text-white px-4 py-3 rounded-xl font-bold"
+                >
+                  <Building2 className="h-5 w-5" /> List Your Company
+                </Link>
+              )}
+              <button 
+                onClick={() => { localStorage.removeItem('token'); window.location.href = "/"; }}
+                className="w-full text-center text-red-500 font-bold py-3"
+              >
+                Logout
+              </button>
+            </>
+          )}
         </div>
       </div>
     </nav>
